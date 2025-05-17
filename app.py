@@ -11,6 +11,20 @@ line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
 handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
+def GPT_response(text):
+    try:
+        response = openai.Completion.create(
+            model="gpt-3.5-turbo-instruct",
+            prompt=text,
+            temperature=0.5,
+            max_tokens=500
+        )
+        answer = response['choices'][0]['text'].strip()
+        return answer
+    except Exception as e:
+        print(f"OpenAI API error: {e}")
+        return "抱歉，我目前無法處理這個請求。"
+
 @app.route("/callback", methods=["POST"])
 def callback():
     signature = request.headers["X-Line-Signature"]
@@ -26,18 +40,11 @@ def callback():
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     user_text = event.message.text
-
-    completion = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": user_text}]
-    )
-
-    reply = completion.choices[0].message.content.strip()
-
+    reply = GPT_response(user_text)
     line_bot_api.reply_message(
         event.reply_token,
         TextSendMessage(text=reply)
     )
 
 if __name__ == "__main__":
-    app.run()
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
