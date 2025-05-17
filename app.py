@@ -2,39 +2,37 @@
 from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
 from linebot.models import MessageEvent, TextMessage, TextSendMessage
-import openai
 import os
+import openai
 
 app = Flask(__name__)
 
 line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
 handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
-openai.api_key = os.getenv("OPENAI_API_KEY")
+
+client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def GPT_response(text):
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "user", "content": text}
             ]
         )
-        answer = response.choices[0].message.content.strip()
-        return answer
+        return response.choices[0].message.content.strip()
     except Exception as e:
-        print(f"⚠️ OpenAI API error: {e}")
+        print(f"⚠️ OpenAI error: {e}")
         return f"⚠️ 無法處理請求，錯誤：{str(e)}"
 
 @app.route("/callback", methods=["POST"])
 def callback():
     signature = request.headers["X-Line-Signature"]
     body = request.get_data(as_text=True)
-
     try:
         handler.handle(body, signature)
     except:
         abort(400)
-
     return "OK"
 
 @handler.add(MessageEvent, message=TextMessage)
