@@ -14,24 +14,30 @@ client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def GPT_response(text):
     try:
-        # 優先嘗試 GPT-4
+        # 預設使用 GPT-4
         response = client.chat.completions.create(
             model="gpt-4",
             messages=[{"role": "user", "content": text}]
         )
         return "[GPT-4]\n" + response.choices[0].message.content.strip()
-    except Exception as e:
+
+    except openai.APIError as e:
+        # 若 quota 用盡，顯示簡潔訊息
+        if "insufficient_quota" in str(e):
+            return "⚠️ 你的 OpenAI API 配額已用盡，請前往 OpenAI 平台儲值後再使用。"
         print(f"⚠️ GPT-4 Error: {e}")
+
         try:
-            # 若失敗則切換為 GPT-3.5
+            # 嘗試切換 GPT-3.5
             response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[{"role": "user", "content": text}]
             )
             return "[GPT-3.5]\n" + response.choices[0].message.content.strip()
         except Exception as ee:
-            print(f"❌ GPT-3.5 Error: {ee}")
-            return f"⚠️ 無法處理請求，錯誤：{str(ee)}"
+            if "insufficient_quota" in str(ee):
+                return "⚠️ 你的 OpenAI API 配額已用盡，請至 https://platform.openai.com/account/billing 儲值。"
+            return f"❌ 無法處理請求：{str(ee)}"
 
 @app.route("/callback", methods=["POST"])
 def callback():
