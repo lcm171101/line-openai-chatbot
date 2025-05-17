@@ -22,8 +22,8 @@ def GPT_response(text):
         answer = response['choices'][0]['text'].strip()
         return answer
     except Exception as e:
-        print(f"OpenAI API error: {e}")
-        return "抱歉，我目前無法處理這個請求。"
+        print(f"⚠️ OpenAI API error: {e}")
+        return f"⚠️ 無法處理請求，錯誤：{str(e)}"
 
 @app.route("/callback", methods=["POST"])
 def callback():
