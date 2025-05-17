@@ -14,16 +14,24 @@ client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def GPT_response(text):
     try:
+        # 優先嘗試 GPT-4
         response = client.chat.completions.create(
             model="gpt-4",
-            messages=[
-                {"role": "user", "content": text}
-            ]
+            messages=[{"role": "user", "content": text}]
         )
-        return response.choices[0].message.content.strip()
+        return "[GPT-4]\n" + response.choices[0].message.content.strip()
     except Exception as e:
-        print(f"⚠️ OpenAI error: {e}")
-        return f"⚠️ 無法處理請求，錯誤：{str(e)}"
+        print(f"⚠️ GPT-4 Error: {e}")
+        try:
+            # 若失敗則切換為 GPT-3.5
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": text}]
+            )
+            return "[GPT-3.5]\n" + response.choices[0].message.content.strip()
+        except Exception as ee:
+            print(f"❌ GPT-3.5 Error: {ee}")
+            return f"⚠️ 無法處理請求，錯誤：{str(ee)}"
 
 @app.route("/callback", methods=["POST"])
 def callback():
